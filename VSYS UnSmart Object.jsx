@@ -1,53 +1,17 @@
-// v.1.3.
+// 
 // VSYS UnSmart Object.jsx
-// https://github.com/visusys/VSYS-Illustrator-CC-Scripts
+//
+// Original script and author:
 // https://github.com/joonaspaakko/UnSmart-Objects-photoshop-script
+// 
+// I just corrected a small bug that wouldn't correctly name the
+// resulting layer if there is only one layer produced. 
+// 
+// The VSYS prefix isn't meant to claim ownership, I just use it
+// for organizational purposes. If you like this script, go 
+// let Joonas Pääkkö (https://github.com/joonaspaakko) know!
 
-// #########
-// Changelog
-// #########
-
-
-// Version 1.3 (Forked by Visusys)
-//
-// - The result is correctly named if only one layer is returned from the SO.
-
-// Version 1.1. (Tested in Photoshop CC 2019)
-//
-// - Added a new option for removing the smart object on complete
-// - Smart object size is calculated properly now, without squishing the image unnecessarily if the smartobject was clipped using a mask.
-// - Any masks in the original smart object are copied over to the contents folder
-
-// Version 1.0.
-//
-// - Tested in Photoshop CC 2019
-// - Doesn't work with vector smart objects.
-// - Though the script can keep the smart object size or at least
-//   tries real hard to do it... it _doesn't_ retain any other
-//   transformations, like skewing for example. It simply takes the
-//   original content and resizes that to fit the bounds of the smart object
-// - "ungroups" a smart object layer
-// - Works with multiple Layers
-//    - Ignores non-smart object layers in the active selection. So you
-//      should be able to just select all layers `Cmd+Alt+A` and run the script
-//      to UnSmart all smart objects in the document. Though as a word of
-//      warning... it may take a long time and even make Photoshop unresponsive.
-// - Option to keep layer size
-// - Dialog shortcuts
-//   - **Checkbox:** Keep Smart Object dimensions (toggle)
-//      - Number key `1` or `Spacebar`
-//   - **Checkbox:** Select Smart Objects (toggle)
-//      - Number key `2`
-//   - **Checkbox:** Select Smart Objects (toggle)
-//      - Number key `3`
-//   - **Checkbox:** Delete Smart Objects (toggle)
-//      - Number key `4`
-//   - **Button:** Start
-//      - `Enter` key
-//   - **Button:** Cancel
-//      - `Esc` key
-
-// #target photoshop
+#target photoshop
 
 var g = {
   bounds: {
@@ -72,17 +36,14 @@ var script = {
   explodeSmartObject: function( initLayer ) {
 
     // Change ruler units to PX
-    // =======================================================
     var rulerUnits = app.preferences.rulerUnits;
     app.preferences.rulerUnits = Units.PIXELS;
 
     // Makes activeLayer visible if it isn't.
-    // =======================================================
     var activeLayer = app.activeDocument.activeLayer;
     if ( activeLayer.visible === false ) { activeLayer.visible = true; }
 
     // Smart Object layer bounds
-    // =======================================================
     var initialMasks = false;
     script.ignoreMasks( function( layer, masks ) {
       g.bounds.smartobject = layer.boundsNoEffects;
@@ -90,7 +51,6 @@ var script = {
     });
 
     // Copy layer style
-    // =======================================================
     var initLayerStyle = false;
     try {
       executeAction( charIDToTypeID( "CpFX" ), undefined, DialogModes.NO );
@@ -98,24 +58,20 @@ var script = {
     } catch (e) {}
 
     // Fetch Smart Object contents...
-    // =======================================================
     var regularSO = this.getSmartObject( initLayer, initLayerStyle, initialMasks );
 
     if ( regularSO ) {
       this.alignCenter( app.activeDocument.activeLayer, g.bounds.smartobject );
 
       // Confirm Action
-      // =======================================================
       var so = g.bounds.smartobject;
       var co = g.bounds.contents;
 
       // Resize activeLayer
-      // =======================================================
       // If user decides to use the Smart Object size
       if ( so[0]-so[2] !== co[0]-co[2] && g.dialog.resizeToSO || so[3]-so[1] !== co[3]-co[1] && g.dialog.resizeToSO ) this.resizeLayer();
 
       // Paste layer style
-      // =======================================================
       if ( initLayerStyle ) {
         try {
           var idPaFX = charIDToTypeID( "PaFX" );
@@ -127,24 +83,20 @@ var script = {
       }
 
       // Add Masks
-      // =======================================================
       if ( initialMasks ) {
         script.copyMasksToActiveLayerByID( activeLayer );
       }
 
       // Remove smart object after it's been unpacked
-      // =======================================================
       if ( g.dialog.deleteSO ) {
         activeLayer.remove();
       }
       else {
         // Hides the Smart Object layer
-        // =======================================================
         activeLayer.visible = false;
       }
 
       // Changes ruler units back to original values
-      // =======================================================
       app.preferences.rulerUnits = rulerUnits;
 
     }
@@ -290,7 +242,6 @@ var script = {
   getSmartObject: function( initLayer, initLayerStyle, initialMasks ) {
 
     // Edit Smart Object contents or die trying...
-    // =======================================================
     var doc = app.activeDocument;
     var soLayerName = doc.activeLayer.name;
     var soLayerName = initLayer.name;
@@ -305,11 +256,9 @@ var script = {
     }
 
     // Select All Layers
-    // =======================================================
     this.selectAllLayers();
 
     // Group Active Layers
-    // =======================================================
     app.runMenuItem( stringIDToTypeID('groupLayersEvent') );
 
     var soDoc = app.activeDocument;
@@ -317,22 +266,18 @@ var script = {
 
 
     // Merge group
-    // =======================================================
     executeAction( charIDToTypeID("Mrg2"), undefined, DialogModes.NO );
 
 
     // Active Layer Bounds
-    // =======================================================
     g.bounds.contents = app.activeDocument.activeLayer.bounds;
 
 
     // Undo all the past mistakes...
-    // =======================================================
     executeAction( charIDToTypeID("undo"), undefined, DialogModes.NO );
 
 
     // Duplicate group back to the main document & close SO
-    // =======================================================
     var dispDlgs = app.displayDialogs;
     app.displayDialogs = DialogModes.NO;
     soDoc.activeLayer.duplicate( doc.activeLayer, ElementPlacement.PLACEBEFORE );
@@ -347,7 +292,6 @@ var script = {
     }
 
     // Add active layer to array
-    // =======================================================
     g.selection.smartObjectContents.push( getActiveLayerId() );
 
     return true;
@@ -734,7 +678,6 @@ if ( app.documents.length > 0 ) {
 
         if ( g.dialog.select.length === 0 ) {
 
-          // =======================================================
           var idselectNoLayers = stringIDToTypeID( "selectNoLayers" );
               var desc5 = new ActionDescriptor();
               var idnull = charIDToTypeID( "null" );
